@@ -57,7 +57,7 @@ dotenv_1.default.config();
 var username = process.env.username; //''; //credentials imported from JSON file
 var password = process.env.password; //'';
 var topic = 'solana.transactions.proto';
-var id = '312jdssdj'; //uuidv4();
+var id = uuidv4();
 // Map to keep track of workers per partition
 var partitionWorkers = new Map();
 // Helper to get or create a worker for a partition
