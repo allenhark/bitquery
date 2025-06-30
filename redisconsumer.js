@@ -1,6 +1,6 @@
 const Redis = require("ioredis");
 const { extractPumpFunTokenDetails } = require("./ExtractToken2");
-const bs58 = require("bs58");
+const bs58 = require("bs58").default;
 const chalk = require("chalk").default;
 const { loadProto } = require("bitquery-protobuf-schema");
 
