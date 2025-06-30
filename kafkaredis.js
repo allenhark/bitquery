@@ -42,10 +42,15 @@ const run = async () => {
     await consumer.run({
         autoCommit: true,
         partitionsConsumedConcurrently: 6,
+        eachBatchAutoResolve: true,
         eachMessage: async ({ message }) => {
             if (!message.value) return;
 
             await redis.xadd(streamKey, "MAXLEN", "~", MAX_STREAM_LENGTH, "*", "payload", message.value.toString("base64"));
+
+            await commitOffsetsIfNecessary();
+            await heartbeat();
+
         },
     });
 };
