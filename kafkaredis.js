@@ -11,7 +11,8 @@ const username = process.env.username;
 const password = process.env.password;
 const topic = 'solana.transactions.proto';
 const id = uuidv4();
-
+const streamKey = "solana:txs";
+const groupName = "pump-group";
 const redis = new Redis();
 // Trim the stream to keep only latest N messages
 const MAX_STREAM_LENGTH = 1000;
