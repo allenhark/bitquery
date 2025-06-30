@@ -13,6 +13,8 @@ const topic = 'solana.transactions.proto';
 const id = uuidv4();
 
 const redis = new Redis();
+// Trim the stream to keep only latest N messages
+const MAX_STREAM_LENGTH = 1000;
 
 const kafka = new Kafka({
     clientId: username,
@@ -40,8 +42,9 @@ const run = async () => {
         autoCommit: true,
         partitionsConsumedConcurrently: 6,
         eachMessage: async ({ message }) => {
-            // Only keep the latest message in Redis (overwrite any backlog)
-            await redis.set('latest_kafka_msg', message.value.toString());
+            if (!message.value) return;
+
+            await redis.xadd(streamKey, "MAXLEN", "~", MAX_STREAM_LENGTH, "*", "payload", message.value.toString("base64"));
         },
     });
 };
