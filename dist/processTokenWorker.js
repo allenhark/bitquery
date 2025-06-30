@@ -40,133 +40,88 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var worker_threads_1 = require("worker_threads");
-var chalk_1 = __importDefault(require("chalk"));
 var ExtractToken2_1 = require("./ExtractToken2");
 var bs58_1 = __importDefault(require("bs58"));
+var chalk_1 = __importDefault(require("chalk"));
 var bitquery_protobuf_schema_1 = require("bitquery-protobuf-schema");
-var pumpFunProgram = '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P';
-var convertBytes = function (buffer, encoding) {
-    if (encoding === void 0) { encoding = 'base58'; }
-    if (encoding === 'base58') {
-        return bs58_1.default.encode(buffer);
-    }
-    return buffer.toString('hex');
-};
-var protobufToJson = function (msg, encoding) {
-    if (encoding === void 0) { encoding = 'base58'; }
-    var result = {};
-    for (var _i = 0, _a = Object.entries(msg); _i < _a.length; _i++) {
-        var _b = _a[_i], key = _b[0], value = _b[1];
-        if (Array.isArray(value)) {
-            result[key] = value.map(function (item) {
-                if (typeof item === 'object' && item !== null) {
-                    return protobufToJson(item, encoding);
-                }
-                else {
-                    return item;
-                }
-            });
-        }
-        else if (value && typeof value === 'object' && Buffer.isBuffer(value)) {
-            result[key] = convertBytes(value, encoding);
-        }
-        else if (value && typeof value === 'object') {
-            result[key] = protobufToJson(value, encoding);
-        }
-        else {
-            result[key] = value;
+var pumpFunProgram = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P";
+var ParsedIdlBlockMessage = null;
+function logTimeDiff(decoded) {
+    var _a;
+    var timestampObj = (_a = decoded === null || decoded === void 0 ? void 0 : decoded.Header) === null || _a === void 0 ? void 0 : _a.Timestamp;
+    if (timestampObj === null || timestampObj === void 0 ? void 0 : timestampObj.low) {
+        var blockTimeMs = timestampObj.low * 1000;
+        var timeDiff = Date.now() - blockTimeMs;
+        console.log(chalk_1.default.green("⏱ BlockTime Diff:"), chalk_1.default.red("".concat(timeDiff, " ms")));
+        if (timeDiff > 2000) {
+            console.warn(chalk_1.default.yellow("⚠️ WARNING: Consumer lag detected!"));
         }
     }
-    return result;
-};
-function processToken(ParsedIdlBlockMessage, message) {
+}
+function processToken(buffer) {
     return __awaiter(this, void 0, void 0, function () {
-        var buffer, decoded, msgObj, jsonOutput, transactions, blockTime, timeDiff, filteredTxs, _i, filteredTxs_1, tx, hasPumpProgram, pumpCreateInstructions, meta;
+        var decoded, txs, _i, txs_1, tx, hasPumpProgram, pumpInstructions, meta;
         var _a, _b, _c, _d, _e;
         return __generator(this, function (_f) {
             try {
-                buffer = message.value;
-                decoded = ParsedIdlBlockMessage.decode(buffer);
-                msgObj = ParsedIdlBlockMessage.toObject(decoded, { bytes: Buffer });
-                jsonOutput = protobufToJson(msgObj);
-                transactions = jsonOutput.Transactions || [];
-                // console.log(jsonOutput?.Header)
-                if ((_a = jsonOutput === null || jsonOutput === void 0 ? void 0 : jsonOutput.Header) === null || _a === void 0 ? void 0 : _a.Timestamp) {
-                    blockTime = ((_b = jsonOutput === null || jsonOutput === void 0 ? void 0 : jsonOutput.Header) === null || _b === void 0 ? void 0 : _b.Timestamp.low) ? ((_c = jsonOutput === null || jsonOutput === void 0 ? void 0 : jsonOutput.Header) === null || _c === void 0 ? void 0 : _c.Timestamp.low) * 1000 : Date.now();
-                    timeDiff = Date.now() - blockTime;
-                    console.log(chalk_1.default.green('Time Diff :'), chalk_1.default.red(timeDiff), 'ms');
+                if (!ParsedIdlBlockMessage) {
+                    throw new Error("ParsedIdlBlockMessage not initialized. Did you forget to send an init message?");
                 }
-                return [2 /*return*/];
-                if (transactions.length === 0)
-                    return [2 /*return*/];
-                filteredTxs = transactions.filter(function (tx) {
-                    var _a;
-                    return Array.isArray(tx.ParsedIdlInstructions) &&
-                        tx.TotalBalanceUpdates.length > 0 &&
-                        ((_a = tx.Status) === null || _a === void 0 ? void 0 : _a.Success) === true;
-                });
-                for (_i = 0, filteredTxs_1 = filteredTxs; _i < filteredTxs_1.length; _i++) {
-                    tx = filteredTxs_1[_i];
-                    hasPumpProgram = (_e = (_d = tx === null || tx === void 0 ? void 0 : tx.Header) === null || _d === void 0 ? void 0 : _d.Accounts) === null || _e === void 0 ? void 0 : _e.some(function (account) {
-                        return account.Address === pumpFunProgram;
-                    });
-                    // console.log('Has pump fun program: ', hasPumpProgram)
+                decoded = ParsedIdlBlockMessage.decode(buffer);
+                logTimeDiff(decoded);
+                txs = decoded.Transactions || [];
+                for (_i = 0, txs_1 = txs; _i < txs_1.length; _i++) {
+                    tx = txs_1[_i];
+                    if (!((_a = tx === null || tx === void 0 ? void 0 : tx.Status) === null || _a === void 0 ? void 0 : _a.Success) || !((_b = tx === null || tx === void 0 ? void 0 : tx.TotalBalanceUpdates) === null || _b === void 0 ? void 0 : _b.length))
+                        continue;
+                    hasPumpProgram = (_d = (_c = tx === null || tx === void 0 ? void 0 : tx.Header) === null || _c === void 0 ? void 0 : _c.Accounts) === null || _d === void 0 ? void 0 : _d.some(function (a) { return bs58_1.default.encode(a.Address) === pumpFunProgram; });
                     if (!hasPumpProgram)
                         continue;
-                    pumpCreateInstructions = tx.ParsedIdlInstructions.filter(function (inst) {
+                    pumpInstructions = (_e = tx.ParsedIdlInstructions) === null || _e === void 0 ? void 0 : _e.filter(function (inst) {
                         var _a, _b;
-                        return ((_a = inst === null || inst === void 0 ? void 0 : inst.Program) === null || _a === void 0 ? void 0 : _a.Name) === 'pump' &&
-                            ((_b = inst === null || inst === void 0 ? void 0 : inst.Program) === null || _b === void 0 ? void 0 : _b.Method) === 'create';
+                        return ((_a = inst === null || inst === void 0 ? void 0 : inst.Program) === null || _a === void 0 ? void 0 : _a.Name) === "pump" &&
+                            ((_b = inst === null || inst === void 0 ? void 0 : inst.Program) === null || _b === void 0 ? void 0 : _b.Method) === "create";
                     });
-                    if (pumpCreateInstructions.length > 0) {
+                    if ((pumpInstructions === null || pumpInstructions === void 0 ? void 0 : pumpInstructions.length) > 0) {
                         meta = (0, ExtractToken2_1.extractPumpFunTokenDetails)(tx);
-                        worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.postMessage({ type: 'result', meta: meta });
+                        worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.postMessage({ type: "result", meta: meta });
                     }
                 }
             }
             catch (err) {
-                worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.postMessage({ type: 'error', error: err instanceof Error ? err.message : String(err) });
+                worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.postMessage({
+                    type: "error",
+                    error: err instanceof Error ? err.message : String(err),
+                });
             }
             return [2 /*return*/];
         });
     });
 }
-worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.on('message', function (data) { return __awaiter(void 0, void 0, void 0, function () {
-    var _a, messages, topic, ParsedIdlBlockMessage, _i, messages_1, message;
-    return __generator(this, function (_b) {
-        switch (_b.label) {
+worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.on("message", function (data) { return __awaiter(void 0, void 0, void 0, function () {
+    var messages;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
             case 0:
-                if (!(data.type === 'init')) return [3 /*break*/, 2];
-                // Load proto for this topic
-                _a = data;
+                if (!(data.type === "init")) return [3 /*break*/, 2];
                 return [4 /*yield*/, (0, bitquery_protobuf_schema_1.loadProto)(data.topic)];
             case 1:
-                // Load proto for this topic
-                _a.ParsedIdlBlockMessage = _b.sent();
-                worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.postMessage({ type: 'ready' });
-                return [3 /*break*/, 8];
-            case 2:
-                if (!(data.type === 'batch')) return [3 /*break*/, 8];
-                messages = data.messages, topic = data.topic;
-                return [4 /*yield*/, (0, bitquery_protobuf_schema_1.loadProto)(topic)];
-            case 3:
-                ParsedIdlBlockMessage = _b.sent();
-                _i = 0, messages_1 = messages;
-                _b.label = 4;
-            case 4:
-                if (!(_i < messages_1.length)) return [3 /*break*/, 7];
-                message = messages_1[_i];
-                return [4 /*yield*/, processToken(ParsedIdlBlockMessage, message)];
-            case 5:
-                _b.sent();
-                _b.label = 6;
-            case 6:
-                _i++;
+                ParsedIdlBlockMessage = _a.sent();
+                worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.postMessage({ type: "ready" });
                 return [3 /*break*/, 4];
-            case 7:
-                worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.postMessage({ type: 'batchDone' });
-                _b.label = 8;
-            case 8: return [2 /*return*/];
+            case 2:
+                if (!(data.type === "batch")) return [3 /*break*/, 4];
+                if (!ParsedIdlBlockMessage) {
+                    worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.postMessage({ type: "error", error: "Parser not initialized yet." });
+                    return [2 /*return*/];
+                }
+                messages = data.messages;
+                return [4 /*yield*/, Promise.all(messages.map(function (m) { return processToken(m.value); }))];
+            case 3:
+                _a.sent();
+                worker_threads_1.parentPort === null || worker_threads_1.parentPort === void 0 ? void 0 : worker_threads_1.parentPort.postMessage({ type: "batchDone" });
+                _a.label = 4;
+            case 4: return [2 /*return*/];
         }
     });
 }); });
