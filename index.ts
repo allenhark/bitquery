@@ -21,7 +21,7 @@ const username = process.env.username; //''; //credentials imported from JSON fi
 const password = process.env.password; //'';
 const topic = 'solana.transactions.proto';
 
-const id = uuidv4();
+const id = '312jdssdj'; //uuidv4();
 
 // Map to keep track of workers per partition
 const partitionWorkers = new Map<number, Worker>();
