@@ -53,6 +53,8 @@ async function processToken(ParsedIdlBlockMessage: any, message: any) {
 
         }
 
+        return;
+
         if (transactions.length === 0) return;
         const filteredTxs = transactions.filter((tx: any) =>
             Array.isArray(tx.ParsedIdlInstructions) &&

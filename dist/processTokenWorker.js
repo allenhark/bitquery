@@ -96,6 +96,7 @@ function processToken(ParsedIdlBlockMessage, message) {
                     timeDiff = Date.now() - blockTime;
                     console.log(chalk_1.default.green('Time Diff :'), chalk_1.default.red(timeDiff), 'ms');
                 }
+                return [2 /*return*/];
                 if (transactions.length === 0)
                     return [2 /*return*/];
                 filteredTxs = transactions.filter(function (tx) {
