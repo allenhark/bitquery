@@ -48,9 +48,6 @@ const run = async () => {
 
             await redis.xadd(streamKey, "MAXLEN", "~", MAX_STREAM_LENGTH, "*", "payload", message.value.toString("base64"));
 
-            await commitOffsetsIfNecessary();
-            await heartbeat();
-
         },
     });
 };
