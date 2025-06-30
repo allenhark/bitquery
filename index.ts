@@ -29,7 +29,7 @@ const partitionWorkers = new Map<number, Worker>();
 // Helper to get or create a worker for a partition
 function getWorkerForPartition(partition: number, topic: string) {
   if (!partitionWorkers.has(partition)) {
-    const worker = new Worker(path.resolve(__dirname, './dist/processTokenWorker.js'));
+    const worker = new Worker(path.resolve(__dirname, './processTokenWorker.js'));
     worker.postMessage({ type: 'init', topic });
     worker.on('message', (msg) => {
       if (msg.type === 'result') {
