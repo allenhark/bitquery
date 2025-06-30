@@ -92,8 +92,8 @@ const protobufToJson = (msg, encoding = 'base58') => {
 // Initialize consumer with more aggressive settings
 const consumer = kafka.consumer({
   groupId: `${username}-${id}`,
-  sessionTimeout: 60000,
-  heartbeatInterval: 5000,
+  sessionTimeout: 6000,
+  heartbeatInterval: 500,
   allowAutoTopicCreation: false,
   maxWaitTimeInMs: 50,
   maxBytes: 2097152,
@@ -113,7 +113,7 @@ const run = async () => {
     await consumer.run({
       autoCommit: true,
       autoCommitInterval: 500,
-      autoCommitThreshold: 50,
+      autoCommitThreshold: 5,
       partitionsConsumedConcurrently: 4,
       eachBatch: async ({ batch, partition }) => {
         const worker = getWorkerForPartition(partition, topic);

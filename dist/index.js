@@ -130,8 +130,8 @@ var protobufToJson = function (msg, encoding) {
 // Initialize consumer with more aggressive settings
 var consumer = kafka.consumer({
     groupId: "".concat(username, "-").concat(id),
-    sessionTimeout: 60000,
-    heartbeatInterval: 5000,
+    sessionTimeout: 6000,
+    heartbeatInterval: 500,
     allowAutoTopicCreation: false,
     maxWaitTimeInMs: 50,
     maxBytes: 2097152,
@@ -157,7 +157,7 @@ var run = function () { return __awaiter(void 0, void 0, void 0, function () {
                 return [4 /*yield*/, consumer.run({
                         autoCommit: true,
                         autoCommitInterval: 500,
-                        autoCommitThreshold: 50,
+                        autoCommitThreshold: 5,
                         partitionsConsumedConcurrently: 4,
                         eachBatch: function (_a) { return __awaiter(void 0, [_a], void 0, function (_b) {
                             var worker;
